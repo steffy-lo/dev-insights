@@ -2,6 +2,7 @@ import React, {useState } from "react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, Bar, BarChart, Cell} from 'recharts';
 import './App.css';
 import { Paper, Tabs, Tab, FormControl, Select, MenuItem, Grid, Switch} from '@material-ui/core';
+import { FiberManualRecord } from '@material-ui/icons';
 import { TabPanel } from "@material-ui/lab";
 import TabContext from '@material-ui/lab/TabContext';
 import CSVReader from 'react-csv-reader';
@@ -19,7 +20,7 @@ function App() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [month, setMonth] = useState([{"Month": "", "data": []}]);
   const [value, setValue] = React.useState("0");
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FD3A4A', '#AF6E4D', '#BFAFB2', '#40E0D0', '#6495ED', '#CCCCFF', '#FFBF00', '#DE3163', '#FF7F50'];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FD3A4A', '#AF6E4D', '#BFAFB2', '#FFE933', '#DE3163', '#FF7F50', '#40E0D0', '#6495ED', '#CCCCFF'];
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -56,6 +57,34 @@ function App() {
     }
   }
 
+  const getStyle = (data) => {
+    let style = {
+      display: 'flex',
+      alignItems: 'center'
+    }
+    const benchmark = getActivityMeter(data)
+    if (benchmark === "usual") return {...style, color: "#27AE60"}
+    else if (benchmark === "higher") return {...style, color: "#E74C3C"}
+    else if (benchmark === "lower") return {...style, color: "#F1C40F"}
+  }
+
+  const getActivityMessage = (data) => {
+    const benchmark = getActivityMeter(data)
+    if (benchmark === "usual") return "About Usual"
+    else if (benchmark === "higher") return "Higher Than Usual"
+    else if (benchmark === "lower") return "Lower Than Usual"
+  }
+
+  const getActivityMeter = (data) => {
+    const benchmark = _.find(_.uniqBy(dailyData.flat(1), "Tag"), {Tag: data.Tag})
+    if (benchmark !== undefined) {
+      console.log(benchmark.Percentage, data.Percentage)
+      if (benchmark.Percentage + 5 >= data.Percentage && benchmark.Percentage - 5 <= data.Percentage) return "usual"
+      else if (benchmark.Percentage < data.Percentage) return "higher"
+      else return "lower"
+    }
+  }
+
   const countMinutes = (str) => {
     const [hh = '0', mm = '0', ss = '0'] = (str || '0:0:0').split(':');
     const hour = parseInt(hh, 10) || 0;
@@ -64,11 +93,20 @@ function App() {
     return ((hour*3600) + (minute*60) + (second)) / 60;
   };
 
+  const minToString = (minutes) => {
+    const hour = Math.floor(minutes/60);
+    const minute = minutes % 60;
+    if (hour > 0)
+      return hour + "h " + minute + " min"
+    else
+      return minute + " min"
+  };
+
   if (dailyData.length > 0) {
     return (
         <div className="App">
           <TabContext value={value}>
-            <Paper style={{marginBottom: '5%'}}>
+            <Paper style={{marginBottom: '20px'}}>
               <Tabs
                   value={value}
                   indicatorColor="primary"
@@ -99,7 +137,7 @@ function App() {
                   {unit === "Time" ? "Minutes" : "Percentage"}
                 </Grid>
               </Grid>
-              <BarChart style={{margin: 'auto'}}
+              <BarChart style={{margin: 'auto', marginBottom: '50px'}}
                         width={1500} height={600} data={day}>
                 <CartesianGrid strokeDasharray="3 3"/>
                 <XAxis dataKey="Tag"/>
@@ -109,6 +147,32 @@ function App() {
                   {COLORS.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>)}
                 </Bar>
               </BarChart>
+              {day.map(data => {
+                return (
+                    <Grid container spacing={2} style={{backgroundColor: 'white',
+                      maxWidth: '90%',
+                      marginBottom: '30px',
+                      marginLeft: '5%',
+                      wordBreak: 'break-word',
+                      alignItems: 'center',
+                      padding: '10px',
+                      borderRadius: '4px',
+                      boxShadow: '1px 1px 10px 0 rgba(0, 0, 0, 0.15)',
+                      height: '60px',
+                      fontSize: '16px',
+                    }}>
+                      <Grid item xs={6}>
+                        <span>{data.Tag}</span>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <span>{minToString(data.Time)}</span>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <span style={getStyle(data)}><FiberManualRecord color="inherit" style={{ marginRight: '10px'}}/>{getActivityMessage(data)}</span>
+                      </Grid>
+                    </Grid>
+                );
+              })}
             </TabPanel>
             <TabPanel value="1">
               <Grid container spacing={3} style={{ display: 'flex', justifyContent: 'space-between'}}>
@@ -128,7 +192,7 @@ function App() {
                   {unit === "Time" ? "Minutes" : "Percentage"}
                 </Grid>
               </Grid>
-              <BarChart style={{margin: 'auto'}}
+              <BarChart style={{margin: 'auto', marginBottom: '50px'}}
                         width={1500} height={600} data={week}>
                 <CartesianGrid strokeDasharray="3 3"/>
                 <XAxis dataKey="Tag"/>
@@ -138,6 +202,33 @@ function App() {
                   {COLORS.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>)}
                 </Bar>
               </BarChart>
+              {week.map(data => {
+                console.log(data)
+                return (
+                    <Grid container spacing={2} style={{backgroundColor: 'white',
+                      maxWidth: '90%',
+                      marginBottom: '30px',
+                      marginLeft: '5%',
+                      wordBreak: 'break-word',
+                      alignItems: 'center',
+                      padding: '10px',
+                      borderRadius: '4px',
+                      boxShadow: '1px 1px 10px 0 rgba(0, 0, 0, 0.15)',
+                      height: '60px',
+                      fontSize: '16px',
+                    }}>
+                      <Grid item xs={6}>
+                        <span>{data.Tag}</span>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <span>{minToString(data.Time)}</span>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <span style={getStyle(data)}><FiberManualRecord color="inherit" style={{ marginRight: '10px'}}/>{getActivityMessage(data)}</span>
+                      </Grid>
+                    </Grid>
+                );
+              })}
             </TabPanel>
             <TabPanel value="2">
               <FormControl variant="outlined" style={{ minWidth: '250px', marginBottom: '25px'}}>
@@ -157,7 +248,7 @@ function App() {
                   type: 'category',
                   categories: Array.apply(null, Array(month[0].data.length)).map(function (x, i) { return i+1; })
                 },
-                  colors: ["#008FFB"],
+                colors: COLORS,
                 }}/>
               </div>
             </TabPanel>
@@ -248,7 +339,6 @@ function App() {
                 }
                 j += 1;
               }
-              console.log(monthlyList)
               setMonthlyData(monthlyList)
               setMonth(monthlyList[monthlyList.length - 1])
 
