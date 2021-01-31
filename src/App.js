@@ -1,7 +1,7 @@
 import React, {useState } from "react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, Bar, BarChart, Cell} from 'recharts';
 import './App.css';
-import { Paper, Tabs, Tab, FormControl, Select, MenuItem, Grid, Switch} from '@material-ui/core';
+import { Paper, Tabs, Tab, FormControl, Select, MenuItem, Grid, Switch, Container} from '@material-ui/core';
 import { FiberManualRecord } from '@material-ui/icons';
 import { TabPanel } from "@material-ui/lab";
 import TabContext from '@material-ui/lab/TabContext';
@@ -78,7 +78,6 @@ function App() {
   const getActivityMeter = (data) => {
     const benchmark = _.find(_.uniqBy(dailyData.flat(1), "Tag"), {Tag: data.Tag})
     if (benchmark !== undefined) {
-      console.log(benchmark.Percentage, data.Percentage)
       if (benchmark.Percentage + 5 >= data.Percentage && benchmark.Percentage - 5 <= data.Percentage) return "usual"
       else if (benchmark.Percentage < data.Percentage) return "higher"
       else return "lower"
@@ -147,9 +146,9 @@ function App() {
                   {COLORS.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>)}
                 </Bar>
               </BarChart>
-              {day.map(data => {
+              {day.map((data, index) => {
                 return (
-                    <Grid container spacing={2} style={{backgroundColor: 'white',
+                    <Grid key={index} container spacing={2} style={{backgroundColor: 'white',
                       maxWidth: '90%',
                       marginBottom: '30px',
                       marginLeft: '5%',
@@ -203,9 +202,8 @@ function App() {
                 </Bar>
               </BarChart>
               {week.map(data => {
-                console.log(data)
                 return (
-                    <Grid container spacing={2} style={{backgroundColor: 'white',
+                    <Grid container key={data.Week} spacing={2} style={{backgroundColor: 'white',
                       maxWidth: '90%',
                       marginBottom: '30px',
                       marginLeft: '5%',
@@ -257,93 +255,109 @@ function App() {
     );
   } else {
     return (
-        <CSVReader
-            parserOptions={{ header: true }}
-            onFileLoaded={data => {
+        <Container maxWidth="sm">
+          <h1>To Get Started...</h1>
+          <p>Please upload your arbtt logs in csv format for each day.</p>
+          <p>The command to export will include the following optional arguments:
+            <ul>
+              <li>
+                --output-format CSV
+              </li>
+              <li>
+                --for-each day
+              </li>
+            </ul>
+          </p>
+          <CSVReader
+              parserOptions={{ header: true }}
+              onFileLoaded={data => {
 
-              // daily data
-              const daily = _.groupBy(data, 'Day');
-              const dailyList = Object.values(daily);
-              for (let program of dailyList) {
-                for (let data of program) {
-                  data.Time = countMinutes(data.Time);
-                  data.Percentage = parseFloat(data.Percentage);
-                }
-              }
-              dailyList.pop() // remove last element with empty data
-              setDailyData(dailyList);
-              setDay(dailyList[dailyList.length - 1])
-
-              // weekly data
-              const weeklyList = [];
-              for (let i = 0; i < dailyList.length - 1; i += 7) {
-                const sevenDays = dailyList.slice(i, i+7)
-                let weekData = [];
-                let weekTitle = sevenDays[0][0].Day + " — " + sevenDays[sevenDays.length - 1][0].Day;
-                for (let day of sevenDays) {
-                  for (let program of day) {
-                    const matchedData = _.find(weekData, {Tag: program.Tag})
-                    if (matchedData !== undefined) {
-                      matchedData.Time += program.Time
-                    } else {
-                      weekData.push({
-                        Week: weekTitle,
-                        Tag: program.Tag,
-                        Time: program.Time
-                      })
-                    }
-                  }
-                }
-                const totalTimeWeekly = _.sumBy(weekData, 'Time');
-                for (let program of weekData) {
-                  program.Percentage = parseFloat((program.Time / totalTimeWeekly * 100).toFixed(2))
-                }
-                weeklyList.push(weekData);
-              }
-              setWeeklyData(weeklyList);
-              setWeek(weeklyList[weeklyList.length - 1]);
-
-              // monthly data
-              const monthlyList = [];
-              let j = 0
-              for (let i = 0; i < dailyList.length - 1; i += 30) {
-                monthlyList.push([]);
-                const thirtyDays = dailyList.slice(i, i+30);
-                const monthlyPrograms = _.map(_.uniqBy(thirtyDays.flat(1), "Tag"), "Tag")
-                for (let program of thirtyDays) {
+                // daily data
+                const daily = _.groupBy(data, 'Day');
+                const dailyList = Object.values(daily);
+                for (let program of dailyList) {
                   for (let data of program) {
-                    const matchedData = _.find(monthlyList[j], {name: data.Tag})
-                    if (matchedData !== undefined) {
-                      matchedData.data.push(parseFloat(data.Percentage));
-                    } else {
-                      monthlyList[j].push({
-                        Month: thirtyDays[0][0].Day + " — " + thirtyDays[thirtyDays.length - 1][0].Day,
-                        name: data.Tag,
-                        data: [parseFloat(data.Percentage)]
-                      })
-                    }
-                  }
-                  const unusedPrograms = _.difference(monthlyPrograms, _.map(program, "Tag"))
-                  for (let prog of unusedPrograms) {
-                    const matchedData = _.find(monthlyList[j], {name: prog})
-                    if (matchedData !== undefined) {
-                      matchedData.data.push(0);
-                    } else {
-                      monthlyList[j].push({
-                        Month: thirtyDays[0][0].Day + " — " + thirtyDays[thirtyDays.length - 1][0].Day,
-                        name: prog,
-                        data: [0]
-                      })
-                    }
+                    data.Time = countMinutes(data.Time);
+                    data.Percentage = parseFloat(data.Percentage);
                   }
                 }
-                j += 1;
-              }
-              setMonthlyData(monthlyList)
-              setMonth(monthlyList[monthlyList.length - 1])
+                dailyList.pop() // remove last element with empty data
+                setDailyData(dailyList);
+                setDay(dailyList[dailyList.length - 1])
 
-            }}
-        />
+                // weekly data
+                const weeklyList = [];
+                for (let i = 0; i < dailyList.length - 1; i += 7) {
+                  const sevenDays = dailyList.slice(i, i+7)
+                  let weekData = [];
+                  let weekTitle = sevenDays[0][0].Day + " — " + sevenDays[sevenDays.length - 1][0].Day;
+                  for (let day of sevenDays) {
+                    for (let program of day) {
+                      const matchedData = _.find(weekData, {Tag: program.Tag})
+                      if (matchedData !== undefined) {
+                        matchedData.Time += program.Time
+                      } else {
+                        weekData.push({
+                          Week: weekTitle,
+                          Tag: program.Tag,
+                          Time: program.Time
+                        })
+                      }
+                    }
+                  }
+                  const totalTimeWeekly = _.sumBy(weekData, 'Time');
+                  for (let program of weekData) {
+                    program.Percentage = parseFloat((program.Time / totalTimeWeekly * 100).toFixed(2))
+                  }
+                  weeklyList.push(weekData);
+                }
+                setWeeklyData(weeklyList);
+                setWeek(weeklyList[weeklyList.length - 1]);
+
+                // monthly data
+                const monthlyList = [];
+                let j = 0
+                for (let i = 0; i < dailyList.length - 1; i += 30) {
+                  monthlyList.push([]);
+                  const thirtyDays = dailyList.slice(i, i+30);
+                  const monthlyPrograms = _.map(_.uniqBy(thirtyDays.flat(1), "Tag"), "Tag")
+                  for (let program of thirtyDays) {
+                    for (let data of program) {
+                      const matchedData = _.find(monthlyList[j], {name: data.Tag})
+                      if (matchedData !== undefined) {
+                        matchedData.data.push(parseFloat(data.Percentage));
+                      } else {
+                        monthlyList[j].push({
+                          Month: thirtyDays[0][0].Day + " — " + thirtyDays[thirtyDays.length - 1][0].Day,
+                          name: data.Tag,
+                          data: [parseFloat(data.Percentage)]
+                        })
+                      }
+                    }
+                    const unusedPrograms = _.difference(monthlyPrograms, _.map(program, "Tag"))
+                    for (let prog of unusedPrograms) {
+                      const matchedData = _.find(monthlyList[j], {name: prog})
+                      if (matchedData !== undefined) {
+                        matchedData.data.push(0);
+                      } else {
+                        monthlyList[j].push({
+                          Month: thirtyDays[0][0].Day + " — " + thirtyDays[thirtyDays.length - 1][0].Day,
+                          name: prog,
+                          data: [0]
+                        })
+                      }
+                    }
+                  }
+                  j += 1;
+                }
+                setMonthlyData(monthlyList)
+                setMonth(monthlyList[monthlyList.length - 1])
+
+              }}
+          />
+
+        </Container>
+
     )
   }
 }
