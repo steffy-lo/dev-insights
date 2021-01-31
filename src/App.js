@@ -6,6 +6,7 @@ import { TabPanel } from "@material-ui/lab";
 import TabContext from '@material-ui/lab/TabContext';
 import CSVReader from 'react-csv-reader';
 import _ from 'lodash';
+import Chart from "react-apexcharts";
 
 // import SankeyDiagram from "./components/sankey";
 
@@ -16,7 +17,7 @@ function App() {
   const [weeklyData, setWeeklyData] = useState([]);
   const [week, setWeek] = useState([{"Week": ""}]);
   const [monthlyData, setMonthlyData] = useState([]);
-  const [month, setMonthly] = useState([]);
+  const [month, setMonth] = useState([{"Month": "", "data": []}]);
   const [value, setValue] = React.useState("0");
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FD3A4A', '#AF6E4D', '#BFAFB2', '#40E0D0', '#6495ED', '#CCCCFF', '#FFBF00', '#DE3163', '#FF7F50'];
 
@@ -43,6 +44,14 @@ function App() {
     for (let weekData of weeklyData) {
       if (weekData[0].Week === event.target.value) {
         setWeek(weekData)
+      }
+    }
+  }
+
+  const handleMonthChange = (event) => {
+    for (let monthData of monthlyData) {
+      if (monthData[0].Month === event.target.value) {
+        setMonth(monthData)
       }
     }
   }
@@ -131,7 +140,26 @@ function App() {
               </BarChart>
             </TabPanel>
             <TabPanel value="2">
-
+              <FormControl variant="outlined" style={{ minWidth: '250px', marginBottom: '25px'}}>
+                <Select onChange={handleMonthChange} value={month[0].Month}>
+                  {monthlyData.map(month => <MenuItem key={month[0].Month} value={month[0].Month}>{month[0].Month}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <div style={{ marginLeft: '10%', marginRight: '10%'}}>
+                <Chart type={"heatmap"} height={800} series={month} options={{chart: {
+                  height: 350,
+                  type: 'heatmap',
+                },
+                  dataLabels: {
+                  enabled: false
+                },
+                xaxis: {
+                  type: 'category',
+                  categories: Array.apply(null, Array(month[0].data.length)).map(function (x, i) { return i+1; })
+                },
+                  colors: ["#008FFB"],
+                }}/>
+              </div>
             </TabPanel>
           </TabContext>
         </div>
@@ -141,6 +169,8 @@ function App() {
         <CSVReader
             parserOptions={{ header: true }}
             onFileLoaded={data => {
+
+              // daily data
               const daily = _.groupBy(data, 'Day');
               const dailyList = Object.values(daily);
               for (let program of dailyList) {
@@ -152,6 +182,8 @@ function App() {
               dailyList.pop() // remove last element with empty data
               setDailyData(dailyList);
               setDay(dailyList[dailyList.length - 1])
+
+              // weekly data
               const weeklyList = [];
               for (let i = 0; i < dailyList.length - 1; i += 7) {
                 const sevenDays = dailyList.slice(i, i+7)
@@ -179,6 +211,47 @@ function App() {
               }
               setWeeklyData(weeklyList);
               setWeek(weeklyList[weeklyList.length - 1]);
+
+              // monthly data
+              const monthlyList = [];
+              let j = 0
+              for (let i = 0; i < dailyList.length - 1; i += 30) {
+                monthlyList.push([]);
+                const thirtyDays = dailyList.slice(i, i+30);
+                const monthlyPrograms = _.map(_.uniqBy(thirtyDays.flat(1), "Tag"), "Tag")
+                for (let program of thirtyDays) {
+                  for (let data of program) {
+                    const matchedData = _.find(monthlyList[j], {name: data.Tag})
+                    if (matchedData !== undefined) {
+                      matchedData.data.push(parseFloat(data.Percentage));
+                    } else {
+                      monthlyList[j].push({
+                        Month: thirtyDays[0][0].Day + " — " + thirtyDays[thirtyDays.length - 1][0].Day,
+                        name: data.Tag,
+                        data: [parseFloat(data.Percentage)]
+                      })
+                    }
+                  }
+                  const unusedPrograms = _.difference(monthlyPrograms, _.map(program, "Tag"))
+                  for (let prog of unusedPrograms) {
+                    const matchedData = _.find(monthlyList[j], {name: prog})
+                    if (matchedData !== undefined) {
+                      matchedData.data.push(0);
+                    } else {
+                      monthlyList[j].push({
+                        Month: thirtyDays[0][0].Day + " — " + thirtyDays[thirtyDays.length - 1][0].Day,
+                        name: prog,
+                        data: [0]
+                      })
+                    }
+                  }
+                }
+                j += 1;
+              }
+              console.log(monthlyList)
+              setMonthlyData(monthlyList)
+              setMonth(monthlyList[monthlyList.length - 1])
+
             }}
         />
     )
