@@ -45,6 +45,7 @@ function App() {
     for (let weekData of weeklyData) {
       if (weekData[0].Week === event.target.value) {
         setWeek(weekData)
+        console.log(weekData)
       }
     }
   }
@@ -201,9 +202,9 @@ function App() {
                   {COLORS.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>)}
                 </Bar>
               </BarChart>
-              {week.map(data => {
+              {week.map((data, index) => {
                 return (
-                    <Grid container key={data.Week} spacing={2} style={{backgroundColor: 'white',
+                    <Grid container key={index} spacing={2} style={{backgroundColor: 'white',
                       maxWidth: '90%',
                       marginBottom: '30px',
                       marginLeft: '5%',
