@@ -26,3 +26,5 @@ yarn-error.log*
 # for v2.0
 /src/constants
 /src/components/sankey.js
+
+.vercel

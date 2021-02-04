@@ -58,26 +58,32 @@ function App() {
     }
   }
 
-  const getStyle = (data) => {
+  const getStyle = (data, period) => {
     let style = {
       display: 'flex',
       alignItems: 'center'
     }
-    const benchmark = getActivityMeter(data)
+    const benchmark = getActivityMeter(data, period)
     if (benchmark === "usual") return {...style, color: "#27AE60"}
     else if (benchmark === "higher") return {...style, color: "#E74C3C"}
     else if (benchmark === "lower") return {...style, color: "#F1C40F"}
   }
 
-  const getActivityMessage = (data) => {
-    const benchmark = getActivityMeter(data)
+  const getActivityMessage = (data, period) => {
+    const benchmark = getActivityMeter(data, period)
     if (benchmark === "usual") return "About Usual"
     else if (benchmark === "higher") return "Higher Than Usual"
     else if (benchmark === "lower") return "Lower Than Usual"
   }
 
-  const getActivityMeter = (data) => {
-    const benchmark = _.find(_.uniqBy(dailyData.flat(1), "Tag"), {Tag: data.Tag})
+  const getActivityMeter = (data, period) => {
+    let targetData = [];
+    if (period === "daily") {
+      targetData = dailyData;
+    } else if (period === "weekly") {
+      targetData = weeklyData;
+    }
+    const benchmark = _.find(_.uniqBy(targetData.flat(1), "Tag"), {Tag: data.Tag})
     if (benchmark !== undefined) {
       if (benchmark.Percentage + 5 >= data.Percentage && benchmark.Percentage - 5 <= data.Percentage) return "usual"
       else if (benchmark.Percentage < data.Percentage) return "higher"
@@ -168,7 +174,7 @@ function App() {
                         <span>{minToString(data.Time)}</span>
                       </Grid>
                       <Grid item xs={3}>
-                        <span style={getStyle(data)}><FiberManualRecord color="inherit" style={{ marginRight: '10px'}}/>{getActivityMessage(data)}</span>
+                        <span style={getStyle(data, "daily")}><FiberManualRecord color="inherit" style={{ marginRight: '10px'}}/>{getActivityMessage(data, "daily")}</span>
                       </Grid>
                     </Grid>
                 );
@@ -223,7 +229,7 @@ function App() {
                         <span>{minToString(data.Time)}</span>
                       </Grid>
                       <Grid item xs={3}>
-                        <span style={getStyle(data)}><FiberManualRecord color="inherit" style={{ marginRight: '10px'}}/>{getActivityMessage(data)}</span>
+                        <span style={getStyle(data, "weekly")}><FiberManualRecord color="inherit" style={{ marginRight: '10px'}}/>{getActivityMessage(data, "weekly")}</span>
                       </Grid>
                     </Grid>
                 );
